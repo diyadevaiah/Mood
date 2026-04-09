@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "User's display name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" },
+        "lastLogin": { "type": "string", "format": "date-time", "description": "Last login timestamp" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "theme": { "type": "string", "enum": ["light", "dark", "system"] },
+            "notifications": { "type": "boolean" }
+          }
+        }
+      },
+      "required": ["name", "email", "createdAt"]
+    },
+    "MoodEntry": {
+      "title": "Mood Entry",
+      "description": "A single mood tracking entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user who created this entry" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the entry was recorded" },
+        "mood": { "type": "string", "enum": ["happy", "sad", "tired", "stressed", "calm", "energetic"], "description": "Detected or selected mood" },
+        "source": { "type": "string", "enum": ["face", "voice", "text", "manual"], "description": "How the mood was detected" },
+        "confidence": { "type": "number", "description": "Confidence score of AI detection" },
+        "note": { "type": "string", "description": "Optional user note" },
+        "aiSuggestions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Suggestions provided by Gemini"
+        }
+      },
+      "required": ["userId", "timestamp", "mood", "source"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/moodHistory/{entryId}": {
+      "schema": "MoodEntry",
+      "description": "Subcollection of mood entries for a user"
+    }
+  }
+}

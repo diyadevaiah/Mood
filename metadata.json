@@ -1,0 +1,5 @@
+{
+  "name": "MoodMirror AI",
+  "description": "An AI-powered emotional and lifestyle assistant that detects mood via face, voice, and text to provide personalized wellness suggestions.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

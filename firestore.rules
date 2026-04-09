@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email format)
+    //   - createdAt: timestamp (required)
+    //   - lastLogin: timestamp
+    //   - preferences: map (optional)
+    //
+    // Collection: users/{userId}/moodHistory
+    // Document ID: {entryId}
+    // Fields:
+    //   - userId: string (required, must match parent)
+    //   - timestamp: timestamp (required)
+    //   - mood: string (required, enum)
+    //   - source: string (required, enum)
+    //   - confidence: number
+    //   - note: string
+    //   - aiSuggestions: list of strings
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(data, ['name', 'email', 'createdAt', 'lastLogin', 'preferences']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email);
+    }
+
+    function isValidMoodEntry(data) {
+      return hasOnlyAllowedFields(data, ['userId', 'timestamp', 'mood', 'source', 'confidence', 'note', 'aiSuggestions']) &&
+             data.userId is string &&
+             data.mood in ['happy', 'sad', 'tired', 'stressed', 'calm', 'energetic'] &&
+             data.source in ['face', 'voice', 'text', 'manual'] &&
+             (!('note' in data) || (data.note is string && data.note.size() < 1000));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      
+      match /moodHistory/{entryId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMoodEntry(request.resource.data) && request.resource.data.userId == userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
